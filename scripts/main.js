@@ -1,7 +1,9 @@
 Gameboard = (function () {
   const board = ["", "", "", "", "", "", "", "", ""];
 
-  return { board };
+  const getBoard = () => board;
+
+  return { getBoard };
 })();
 
 function Player(mark) {
@@ -10,21 +12,23 @@ function Player(mark) {
 
   const incrementScore = () => score++;
   const markGrid = (gridId) => markedGrids.push(gridId);
+  const getMark = () => mark;
   const getScore = () => score;
   const getMarkedGrids = () => markedGrids;
 
   return {
-    mark,
     incrementScore,
     markGrid,
+    getMark,
     getScore,
     getMarkedGrids,
   };
 }
 
-RoundController = (function () {
+GameController = (function () {
   const player1 = Player("X");
   const player2 = Player("O");
+  const getBoard = Gameboard.getBoard;
   const winningPatterns = [
     ["0", "1", "2"],
     ["3", "4", "5"],
@@ -36,6 +40,10 @@ RoundController = (function () {
     ["2", "4", "6"],
   ];
   let currPlayer = player1;
+
+  const getPlayer1 = () => player1;
+  const getPlayer2 = () => player2;
+  const getCurrPlayer = () => currPlayer;
 
   const checkWinner = (player) => {
     let isPlayerWinner = false;
@@ -54,7 +62,7 @@ RoundController = (function () {
   const playRound = () => {
     let unmarkedGridCount = 9;
     do {
-      currPlayer.markGrid(prompt(`${currPlayer.mark}'s turn to mark a grid`));
+      currPlayer.markGrid(prompt(`${currPlayer.getMark()}'s turn to mark a grid`));
 
       unmarkedGridCount--;
 
@@ -74,9 +82,51 @@ RoundController = (function () {
     console.log(player2.getScore());
   };
 
-  return { playRound };
+  return {
+    getPlayer1,
+    getPlayer2,
+    getCurrPlayer,
+    getBoard,
+    playRound,
+  };
 })();
 
-ConsoleController = (function () {
-  RoundController.playRound();
+DisplayController = (function () {
+  const player1El = document.querySelector(".player-1");
+  const player1ScoreEl = document.querySelector(".player-1-score");
+  const player2El = document.querySelector(".player-2");
+  const player2ScoreEl = document.querySelector(".player-2-score");
+  const turnIndicatorEl = document.querySelector(".turn-indicator");
+  const gameboardEl = document.querySelector(".gameboard");
+
+  const renderScoreboard = () => {
+    const player1 = GameController.getPlayer1();
+    const player2 = GameController.getPlayer2();
+
+    player1El.textContent = player1.getMark();
+    player1ScoreEl.textContent = player1.getScore();
+    player2El.textContent = player2.getMark();
+    player2ScoreEl.textContent = player2.getScore();
+  };
+
+  const renderTurnIndicator = () => {
+    const currPlayerMark = GameController.getCurrPlayer().getMark();
+
+    turnIndicatorEl.textContent = `${currPlayerMark} Turn`;
+  };
+
+  const renderBoard = () => {
+    const board = GameController.getBoard();
+
+    board.forEach((grid, index) => {
+      const gridButton = document.createElement("button");
+      gridButton.classList.add("grid");
+      gridButton.dataset.gridId = index;
+      gameboardEl.appendChild(gridButton);
+    });
+  };
+
+  renderScoreboard();
+  renderTurnIndicator();
+  renderBoard();
 })();
