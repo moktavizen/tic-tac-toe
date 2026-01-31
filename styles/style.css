@@ -37,6 +37,14 @@ body {
   justify-content: space-between;
 }
 
+.result {
+  justify-content: center;
+}
+
+.draw {
+  color: var(--magenta300);
+}
+
 .player-x-mark,
 .player-x-score {
   color: var(--blue300);
@@ -66,9 +74,15 @@ body {
 
 .grid {
   background: var(--neutral900);
+  font-size: 3rem;
+  font-weight: 700;
 }
 
-.grid:hover {
+.grid:hover:not(:disabled) {
   opacity: 0.8;
   cursor: pointer;
+}
+
+.winner-grid {
+  opacity: 0.8;
 }

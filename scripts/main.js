@@ -9,12 +9,17 @@ Gameboard = (function () {
 function Player(mark) {
   let score = 0;
   const markedGrids = [];
+  let winningPattern;
 
   const incrementScore = () => score++;
   const markGrid = (gridId) => markedGrids.push(gridId);
   const getMark = () => mark;
   const getScore = () => score;
   const getMarkedGrids = () => markedGrids;
+  const setWinningPattern = (pattern) => {
+    winningPattern = pattern;
+  };
+  const getWinningPattern = () => winningPattern;
 
   return {
     incrementScore,
@@ -22,13 +27,14 @@ function Player(mark) {
     getMark,
     getScore,
     getMarkedGrids,
+    setWinningPattern,
+    getWinningPattern,
   };
 }
 
 GameController = (function () {
   const playerX = Player("X");
   const playerO = Player("O");
-  const getBoard = Gameboard.getBoard;
   const winningPatterns = [
     ["0", "1", "2"],
     ["3", "4", "5"],
@@ -40,54 +46,49 @@ GameController = (function () {
     ["2", "4", "6"],
   ];
   let currPlayer = playerX;
+  let unmarkedGridCount = 9;
 
   const getPlayerX = () => playerX;
   const getPlayerO = () => playerO;
   const getCurrPlayer = () => currPlayer;
 
-  const checkWinner = (player) => {
-    let isPlayerWinner = false;
+  const checkResult = (player) => {
+    if (player.getMarkedGrids().length < 3) return;
 
+    let msg = "";
     for (pattern of winningPatterns) {
       const winCon = pattern.every((el) => player.getMarkedGrids().includes(el));
       if (winCon) {
-        isPlayerWinner = true;
+        player.setWinningPattern(pattern);
+        msg = `${player.getMark()} WINNER!`;
+        player.incrementScore();
         break;
       }
     }
 
-    return isPlayerWinner;
+    if (!msg && !unmarkedGridCount) {
+      msg = "DRAW!";
+    }
+
+    return msg;
   };
 
-  const playRound = () => {
-    let unmarkedGridCount = 9;
-    do {
-      currPlayer.markGrid(prompt(`${currPlayer.getMark()}'s turn to mark a grid`));
+  const switchPlayer = () => {
+    currPlayer = currPlayer === playerX ? playerO : playerX;
+  };
 
-      unmarkedGridCount--;
-
-      if (currPlayer.getMarkedGrids().length >= 3) {
-        if (checkWinner(currPlayer)) {
-          currPlayer.incrementScore();
-          break;
-        }
-      }
-
-      currPlayer = currPlayer === playerX ? playerO : playerX;
-    } while (unmarkedGridCount > 0);
-
-    console.log(playerX.getMarkedGrids());
-    console.log(playerO.getMarkedGrids());
-    console.log(playerX.getScore());
-    console.log(playerO.getScore());
+  const decreaseUnmarkedGridCount = () => {
+    unmarkedGridCount--;
   };
 
   return {
     getPlayerX,
     getPlayerO,
     getCurrPlayer,
-    getBoard,
-    playRound,
+    getBoard: Gameboard.getBoard,
+    checkResult,
+    switchPlayer,
+    decreaseUnmarkedGridCount,
   };
 })();
 
@@ -99,27 +100,20 @@ DisplayController = (function () {
   const turnIndicatorEl = document.querySelector(".turn-indicator");
   const gameboardEl = document.querySelector(".gameboard");
 
-  const renderScoreboard = () => {
-    const playerX = GameController.getPlayerX();
-    const playerO = GameController.getPlayerO();
+  const playerX = GameController.getPlayerX();
+  const playerO = GameController.getPlayerO();
+  const board = GameController.getBoard();
 
+  const initialRender = () => {
     playerXMarkEl.textContent = playerX.getMark();
     playerXScoreEl.textContent = playerX.getScore();
     playerOMarkEl.textContent = playerO.getMark();
     playerOScoreEl.textContent = playerO.getScore();
-  };
 
-  const renderTurnIndicator = () => {
-    const currPlayerMark = GameController.getCurrPlayer().getMark();
+    turnIndicatorEl.classList.add(`player-${playerX.getMark().toLowerCase()}-mark`);
+    turnIndicatorEl.textContent = `${playerX.getMark()} Turn`;
 
-    turnIndicatorEl.classList.add(`player-${currPlayerMark.toLowerCase()}-mark`);
-    turnIndicatorEl.textContent = `${currPlayerMark} Turn`;
-  };
-
-  const renderBoard = () => {
-    const board = GameController.getBoard();
-
-    board.forEach((grid, index) => {
+    board.forEach((_, index) => {
       const gridButton = document.createElement("button");
       gridButton.classList.add("grid");
       gridButton.dataset.gridId = index;
@@ -127,7 +121,66 @@ DisplayController = (function () {
     });
   };
 
-  renderScoreboard();
-  renderTurnIndicator();
-  renderBoard();
+  initialRender();
+
+  const updateGrid = (gridEl, playerMark) => {
+    gridEl.textContent = playerMark;
+    gridEl.classList.add(`player-${playerMark.toLowerCase()}-mark`);
+    gridEl.setAttribute("disabled", "");
+  };
+
+  const updateTurnIndicator = (playerMark) => {
+    turnIndicatorEl.classList.remove(`player-${playerX.getMark().toLowerCase()}-mark`);
+    turnIndicatorEl.classList.remove(`player-${playerO.getMark().toLowerCase()}-mark`);
+    turnIndicatorEl.classList.add(`player-${playerMark.toLowerCase()}-mark`);
+    turnIndicatorEl.textContent = `${playerMark} Turn`;
+  };
+
+  const scoreboardEl = document.querySelector(".scoreboard");
+  const gridButtonEls = document.querySelectorAll(".grid");
+
+  const renderResult = (msg, playerMark, playerWinningPattern) => {
+    scoreboardEl.replaceChildren();
+    scoreboardEl.classList.add("result");
+
+    if (msg === "DRAW!") {
+      scoreboardEl.classList.add("draw");
+    } else {
+      scoreboardEl.classList.add(`player-${playerMark.toLowerCase()}-mark`);
+    }
+
+    scoreboardEl.textContent = msg;
+
+    for (el of gridButtonEls) {
+      el.setAttribute("disabled", "");
+    }
+
+    if (!playerWinningPattern) return;
+    for (gridId of playerWinningPattern) {
+      gridEl = document.querySelector(`[data-grid-id="${gridId}"]`);
+      gridEl.classList.add("winner-grid");
+    }
+  };
+
+  gameboardEl.addEventListener("click", (ev) => {
+    const selectedGridEl = ev.target;
+    const selectedGridId = selectedGridEl.dataset.gridId;
+
+    if (!selectedGridId) return;
+
+    let currPlayer = GameController.getCurrPlayer();
+
+    currPlayer.markGrid(selectedGridId);
+    updateGrid(selectedGridEl, currPlayer.getMark());
+    GameController.decreaseUnmarkedGridCount();
+
+    const resultMsg = GameController.checkResult(currPlayer);
+    if (resultMsg) {
+      renderResult(resultMsg, currPlayer.getMark(), currPlayer.getWinningPattern());
+    }
+
+    GameController.switchPlayer();
+    currPlayer = GameController.getCurrPlayer();
+    updateTurnIndicator(currPlayer.getMark());
+  });
 })();
