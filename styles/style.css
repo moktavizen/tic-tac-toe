@@ -37,13 +37,13 @@ body {
   justify-content: space-between;
 }
 
-.player-1,
-.player-1-score {
+.player-x-mark,
+.player-x-score {
   color: var(--blue300);
 }
 
-.player-2,
-.player-2-score {
+.player-o-mark,
+.player-o-score {
   color: var(--red300);
 }
 

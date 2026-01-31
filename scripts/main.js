@@ -26,8 +26,8 @@ function Player(mark) {
 }
 
 GameController = (function () {
-  const player1 = Player("X");
-  const player2 = Player("O");
+  const playerX = Player("X");
+  const playerO = Player("O");
   const getBoard = Gameboard.getBoard;
   const winningPatterns = [
     ["0", "1", "2"],
@@ -39,10 +39,10 @@ GameController = (function () {
     ["0", "4", "8"],
     ["2", "4", "6"],
   ];
-  let currPlayer = player1;
+  let currPlayer = playerX;
 
-  const getPlayer1 = () => player1;
-  const getPlayer2 = () => player2;
+  const getPlayerX = () => playerX;
+  const getPlayerO = () => playerO;
   const getCurrPlayer = () => currPlayer;
 
   const checkWinner = (player) => {
@@ -73,18 +73,18 @@ GameController = (function () {
         }
       }
 
-      currPlayer = currPlayer === player1 ? player2 : player1;
+      currPlayer = currPlayer === playerX ? playerO : playerX;
     } while (unmarkedGridCount > 0);
 
-    console.log(player1.getMarkedGrids());
-    console.log(player2.getMarkedGrids());
-    console.log(player1.getScore());
-    console.log(player2.getScore());
+    console.log(playerX.getMarkedGrids());
+    console.log(playerO.getMarkedGrids());
+    console.log(playerX.getScore());
+    console.log(playerO.getScore());
   };
 
   return {
-    getPlayer1,
-    getPlayer2,
+    getPlayerX,
+    getPlayerO,
     getCurrPlayer,
     getBoard,
     playRound,
@@ -92,26 +92,27 @@ GameController = (function () {
 })();
 
 DisplayController = (function () {
-  const player1El = document.querySelector(".player-1");
-  const player1ScoreEl = document.querySelector(".player-1-score");
-  const player2El = document.querySelector(".player-2");
-  const player2ScoreEl = document.querySelector(".player-2-score");
+  const playerXMarkEl = document.querySelector(".player-x-mark");
+  const playerXScoreEl = document.querySelector(".player-x-score");
+  const playerOMarkEl = document.querySelector(".player-o-mark");
+  const playerOScoreEl = document.querySelector(".player-o-score");
   const turnIndicatorEl = document.querySelector(".turn-indicator");
   const gameboardEl = document.querySelector(".gameboard");
 
   const renderScoreboard = () => {
-    const player1 = GameController.getPlayer1();
-    const player2 = GameController.getPlayer2();
+    const playerX = GameController.getPlayerX();
+    const playerO = GameController.getPlayerO();
 
-    player1El.textContent = player1.getMark();
-    player1ScoreEl.textContent = player1.getScore();
-    player2El.textContent = player2.getMark();
-    player2ScoreEl.textContent = player2.getScore();
+    playerXMarkEl.textContent = playerX.getMark();
+    playerXScoreEl.textContent = playerX.getScore();
+    playerOMarkEl.textContent = playerO.getMark();
+    playerOScoreEl.textContent = playerO.getScore();
   };
 
   const renderTurnIndicator = () => {
     const currPlayerMark = GameController.getCurrPlayer().getMark();
 
+    turnIndicatorEl.classList.add(`player-${currPlayerMark.toLowerCase()}-mark`);
     turnIndicatorEl.textContent = `${currPlayerMark} Turn`;
   };
 
