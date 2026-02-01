@@ -7,27 +7,34 @@ Gameboard = (function () {
 })();
 
 function Player(mark) {
-  let score = 0;
-  const markedGrids = [];
-  let winningPattern;
-
-  const incrementScore = () => score++;
-  const markGrid = (gridId) => markedGrids.push(gridId);
   const getMark = () => mark;
+
+  let score = 0;
+  const incrementScore = () => score++;
   const getScore = () => score;
+
+  const markedGrids = [];
+  const markGrid = (gridId) => markedGrids.push(gridId);
+  const resetMarkedGrids = () => (markedGrids.length = 0);
   const getMarkedGrids = () => markedGrids;
+
+  const winningPattern = [];
   const setWinningPattern = (pattern) => {
-    winningPattern = pattern;
+    winningPattern.length = 0;
+    winningPattern.push(...pattern);
   };
+  const resetWinningPattern = () => (winningPattern.length = 0);
   const getWinningPattern = () => winningPattern;
 
   return {
-    incrementScore,
-    markGrid,
     getMark,
+    incrementScore,
     getScore,
+    markGrid,
+    resetMarkedGrids,
     getMarkedGrids,
     setWinningPattern,
+    resetWinningPattern,
     getWinningPattern,
   };
 }
@@ -77,8 +84,16 @@ GameController = (function () {
     currPlayer = currPlayer === playerX ? playerO : playerX;
   };
 
+  const resetCurrPlayer = () => {
+    currPlayer = playerX;
+  };
+
   const decreaseUnmarkedGridCount = () => {
     unmarkedGridCount--;
+  };
+
+  const resetUnmarkedGridCount = () => {
+    unmarkedGridCount = 9;
   };
 
   return {
@@ -88,7 +103,9 @@ GameController = (function () {
     getBoard: Gameboard.getBoard,
     checkResult,
     switchPlayer,
+    resetCurrPlayer,
     decreaseUnmarkedGridCount,
+    resetUnmarkedGridCount,
   };
 })();
 
@@ -97,28 +114,47 @@ DisplayController = (function () {
   const playerXScoreEl = document.querySelector(".player-x-score");
   const playerOMarkEl = document.querySelector(".player-o-mark");
   const playerOScoreEl = document.querySelector(".player-o-score");
-  const turnIndicatorEl = document.querySelector(".turn-indicator");
-  const gameboardEl = document.querySelector(".gameboard");
+  const vsEL = document.querySelector(".vs");
 
   const playerX = GameController.getPlayerX();
   const playerO = GameController.getPlayerO();
-  const board = GameController.getBoard();
 
-  const initialRender = () => {
+  const renderScoreboard = () => {
     playerXMarkEl.textContent = playerX.getMark();
     playerXScoreEl.textContent = playerX.getScore();
     playerOMarkEl.textContent = playerO.getMark();
     playerOScoreEl.textContent = playerO.getScore();
+    vsEL.textContent = "VS";
+  };
 
-    turnIndicatorEl.classList.add(`player-${playerX.getMark().toLowerCase()}-mark`);
-    turnIndicatorEl.textContent = `${playerX.getMark()} Turn`;
+  const statusEl = document.querySelector(".status");
 
+  const renderStatus = () => {
+    statusEl.classList.add(`player-${playerX.getMark().toLowerCase()}-mark`);
+    statusEl.textContent = `${playerX.getMark()} Turn`;
+  };
+
+  const board = GameController.getBoard();
+  const gameboardEl = document.querySelector(".gameboard");
+
+  const renderBoard = () => {
     board.forEach((_, index) => {
-      const gridButton = document.createElement("button");
-      gridButton.classList.add("grid");
-      gridButton.dataset.gridId = index;
-      gameboardEl.appendChild(gridButton);
+      const gridBtn = document.createElement("button");
+      gridBtn.classList.add("grid");
+      gridBtn.dataset.gridId = index;
+      gameboardEl.appendChild(gridBtn);
     });
+  };
+
+  const actionBtn = document.querySelector(".action-btn");
+
+  const renderActionBtn = () => (actionBtn.textContent = "Restart");
+
+  const initialRender = () => {
+    renderScoreboard();
+    renderStatus();
+    renderBoard();
+    renderActionBtn();
   };
 
   initialRender();
@@ -129,37 +165,42 @@ DisplayController = (function () {
     gridEl.setAttribute("disabled", "");
   };
 
-  const updateTurnIndicator = (playerMark) => {
-    turnIndicatorEl.classList.remove(`player-${playerX.getMark().toLowerCase()}-mark`);
-    turnIndicatorEl.classList.remove(`player-${playerO.getMark().toLowerCase()}-mark`);
-    turnIndicatorEl.classList.add(`player-${playerMark.toLowerCase()}-mark`);
-    turnIndicatorEl.textContent = `${playerMark} Turn`;
-  };
-
-  const scoreboardEl = document.querySelector(".scoreboard");
-  const gridButtonEls = document.querySelectorAll(".grid");
-
   const renderResult = (msg, playerMark, playerWinningPattern) => {
-    scoreboardEl.replaceChildren();
-    scoreboardEl.classList.add("result");
+    playerXScoreEl.textContent = playerX.getScore();
+    playerOScoreEl.textContent = playerO.getScore();
 
+    statusEl.classList.remove(`player-${playerX.getMark().toLowerCase()}-mark`);
+    statusEl.classList.remove(`player-${playerO.getMark().toLowerCase()}-mark`);
+    statusEl.classList.add("result");
     if (msg === "DRAW!") {
-      scoreboardEl.classList.add("draw");
+      statusEl.classList.add("draw");
     } else {
-      scoreboardEl.classList.add(`player-${playerMark.toLowerCase()}-mark`);
+      statusEl.classList.add(`player-${playerMark.toLowerCase()}-mark`);
     }
 
-    scoreboardEl.textContent = msg;
+    statusEl.textContent = msg;
 
-    for (el of gridButtonEls) {
+    const gridBtnEls = document.querySelectorAll(".grid");
+    for (el of gridBtnEls) {
       el.setAttribute("disabled", "");
     }
+
+    actionBtn.textContent = "Continue";
 
     if (!playerWinningPattern) return;
     for (gridId of playerWinningPattern) {
       gridEl = document.querySelector(`[data-grid-id="${gridId}"]`);
       gridEl.classList.add("winner-grid");
     }
+  };
+
+  const updateStatus = (playerMark) => {
+    statusEl.classList.remove(`draw`);
+    statusEl.classList.remove(`result`);
+    statusEl.classList.remove(`player-${playerX.getMark().toLowerCase()}-mark`);
+    statusEl.classList.remove(`player-${playerO.getMark().toLowerCase()}-mark`);
+    statusEl.classList.add(`player-${playerMark.toLowerCase()}-mark`);
+    statusEl.textContent = `${playerMark} Turn`;
   };
 
   gameboardEl.addEventListener("click", (ev) => {
@@ -177,10 +218,26 @@ DisplayController = (function () {
     const resultMsg = GameController.checkResult(currPlayer);
     if (resultMsg) {
       renderResult(resultMsg, currPlayer.getMark(), currPlayer.getWinningPattern());
+    } else {
+      GameController.switchPlayer();
+      currPlayer = GameController.getCurrPlayer();
+      updateStatus(currPlayer.getMark());
     }
+  });
 
-    GameController.switchPlayer();
-    currPlayer = GameController.getCurrPlayer();
-    updateTurnIndicator(currPlayer.getMark());
+  actionBtn.addEventListener("click", () => {
+    actionBtn.textContent =
+      actionBtn.textContent === "Continue" ? "Restart" : actionBtn.textContent;
+
+    playerX.resetMarkedGrids();
+    playerO.resetMarkedGrids();
+    playerX.resetWinningPattern();
+    playerO.resetWinningPattern();
+    GameController.resetCurrPlayer();
+    updateStatus(GameController.getCurrPlayer().getMark());
+
+    gameboardEl.replaceChildren();
+    renderBoard();
+    GameController.resetUnmarkedGridCount();
   });
 })();
