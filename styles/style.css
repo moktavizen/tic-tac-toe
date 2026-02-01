@@ -18,6 +18,8 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
+
+  touch-action: none; /* Prevent zoom for Safari on iOS */
 }
 
 .container {
